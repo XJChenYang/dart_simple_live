@@ -1,5 +1,4 @@
-> ### ⚠ 本项目不提供Release安装包，请自行编译后运行测试。
-
+> Forked from [xiaoyaocz/dart_simple_live](https://github.com/xiaoyaocz/dart_simple_live)
 
 <p align="center">
     <img width="128" src="/assets/logo.png" alt="Simple Live logo">
@@ -14,14 +13,11 @@
 
 ![深色模式](/assets/screenshot_dark.jpg)
 
-## 支持直播平台：
+## 支持直播平台
 
 - 虎牙直播
-
 - 斗鱼直播
-
 - 哔哩哔哩直播
-
 - 抖音直播
 
 ## APP支持平台
@@ -43,6 +39,16 @@
 ## 环境
 
 Flutter : `3.38`
+
+## 安装方法
+
+### Android
+从 [Releases](https://github.com/XJChenYang/dart_simple_live/releases) 页面下载最新 APK 文件，直接安装即可。
+
+### Windows
+从 [Releases](https://github.com/XJChenYang/dart_simple_live/releases) 页面下载最新 msix 文件，双击安装。
+
+> ⚠ 本项目不提供Release安装包，请自行编译后运行测试。
 
 ## 参考及引用
 
@@ -71,13 +77,3 @@ Flutter : `3.38`
 本项目仅用于学习交流编程技术，严禁将本项目用于商业目的。如有任何商业行为，均与本项目无关。
 
 如果本项目存在侵犯您的合法权益的情况，请及时与开发者联系，开发者将会及时删除有关内容。
-
-## Star History
-
-<a href="https://www.star-history.com/#xiaoyaocz/dart_simple_live&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xiaoyaocz/dart_simple_live&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xiaoyaocz/dart_simple_live&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xiaoyaocz/dart_simple_live&type=Date" />
- </picture>
-</a>
