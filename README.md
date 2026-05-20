@@ -27,11 +27,7 @@
 ## APP支持平台
 
 - [x] Android
-- [x] iOS
 - [x] Windows
-- [x] MacOS
-- [x] Linux
-- [x] Android TV
 
 ## 项目结构
 
