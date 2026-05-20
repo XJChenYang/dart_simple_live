@@ -188,10 +188,12 @@ class BiliBiliSite implements LiveSite {
     }
     // 对链接进行排序，包含mcdn的在后
     urls.sort((a, b) {
-      if (a.contains("mcdn")) {
+      if (a.contains("mcdn") && !b.contains("mcdn")) {
         return 1;
-      } else {
+      } else if (!a.contains("mcdn") && b.contains("mcdn")) {
         return -1;
+      } else {
+        return 0;
       }
     });
     return LivePlayUrl(
@@ -437,14 +439,14 @@ class BiliBiliSite implements LiveSite {
   /// }
   /// ```
   Future<Map> getBuvid() async {
-    try {
-      if (cookie.contains("buvid3")) {
-        return {
-          "b_3": RegExp(r"buvid3=(.*?);").firstMatch(cookie)?.group(1) ?? "",
-          "b_4": RegExp(r"buvid4=(.*?);").firstMatch(cookie)?.group(1) ?? "",
-        };
-      }
+    if (cookie.contains("buvid3")) {
+      return {
+        "b_3": RegExp(r"buvid3=(.*?);").firstMatch(cookie)?.group(1) ?? "",
+        "b_4": RegExp(r"buvid4=(.*?);").firstMatch(cookie)?.group(1) ?? "",
+      };
+    }
 
+    try {
       var result = await HttpClient.instance.getJson(
         "https://api.bilibili.com/x/frontend/finger/spi",
         queryParameters: {},
@@ -455,10 +457,12 @@ class BiliBiliSite implements LiveSite {
         },
       );
       return result["data"];
-    } catch (e) {
+    } catch (_) {
+      // Fallback: generate a random buvid so we don't keep retrying
+      var randomBuvid = '${DateTime.now().millisecondsSinceEpoch}';
       return {
-        "b_3": "",
-        "b_4": "",
+        "b_3": "XY${randomBuvid}infoc",
+        "b_4": "XY${randomBuvid}infoc",
       };
     }
   }
@@ -541,8 +545,13 @@ class BiliBiliSite implements LiveSite {
       header: await getHeader(),
     );
 
-    var imgUrl = resp["data"]["wbi_img"]["img_url"].toString();
-    var subUrl = resp["data"]["wbi_img"]["sub_url"].toString();
+    var wbiImg = resp["data"]?["wbi_img"];
+    if (wbiImg == null) {
+      throw Exception("B站WBI签名密钥获取失败，请检查网络或Cookie");
+    }
+
+    var imgUrl = wbiImg["img_url"].toString();
+    var subUrl = wbiImg["sub_url"].toString();
     var imgKey = imgUrl.substring(imgUrl.lastIndexOf('/') + 1).split('.').first;
     var subKey = subUrl.substring(subUrl.lastIndexOf('/') + 1).split('.').first;
 
@@ -594,17 +603,20 @@ class BiliBiliSite implements LiveSite {
       return accessId;
     }
 
-    // 获取 access_id
-    var resp = await HttpClient.instance.getText(
-      "https://live.bilibili.com/lol",
-      queryParameters: {},
-      header: await getHeader(),
-    );
-    var id = RegExp(r'"access_id":"(.*?)"')
-        .firstMatch(resp)
-        ?.group(1)
-        ?.replaceAll("\\", "");
-    accessId = id ?? "";
+    try {
+      var resp = await HttpClient.instance.getText(
+        "https://live.bilibili.com/lol",
+        queryParameters: {},
+        header: await getHeader(),
+      );
+      var id = RegExp(r'"access_id":"(.*?)"')
+          .firstMatch(resp)
+          ?.group(1)
+          ?.replaceAll("\\", "");
+      accessId = id ?? "";
+    } catch (_) {
+      accessId = "";
+    }
     return accessId;
   }
 }

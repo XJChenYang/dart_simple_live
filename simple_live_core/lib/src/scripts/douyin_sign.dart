@@ -4,6 +4,31 @@ import 'package:simple_live_core/simple_live_core.dart';
 import 'package:crypto/crypto.dart';
 
 class DouyinSign {
+  static JsRuntime? _abogusRuntime;
+  static JsRuntime? _signatureRuntime;
+
+  static JsRuntime get abogusRuntime {
+    if (_abogusRuntime == null) {
+      _abogusRuntime = JsRuntime(
+        memoryLimit: 4 * 1024 * 1024,
+        maxStackSize: 64 * 1024,
+      );
+      _abogusRuntime!.eval(kABogus);
+    }
+    return _abogusRuntime!;
+  }
+
+  static JsRuntime get signatureRuntime {
+    if (_signatureRuntime == null) {
+      _signatureRuntime = JsRuntime(
+        memoryLimit: 4 * 1024 * 1024,
+        maxStackSize: 128 * 1024,
+      );
+      _signatureRuntime!.eval(kWebMsSDK);
+    }
+    return _signatureRuntime!;
+  }
+
   static const kABogus = r'''
 function getABogus(params, userAgent) {
 
@@ -10649,30 +10674,19 @@ function getMSSDKSignature(msStub, userAgent) {
 
   static const String defaultUserAgent = DouyinSite.kDefaultUserAgent;
   static String getAbogusUrl(String url, String userAgent) {
-    JsRuntime flutterJs = JsRuntime(
-      memoryLimit: 4 * 1024 * 1024,
-      maxStackSize: 64 * 1024,
-    );
+    final flutterJs = abogusRuntime;
     final msToken = generateMsToken(107);
     var params = ('$url&msToken=$msToken').split('?')[1];
     var query = params.contains("?") ? params.split("?")[1] : params;
-    var jsCode = kABogus;
-    flutterJs.eval(jsCode);
     // 执行getABogus函数
     var aBogus = flutterJs.eval("getABogus('$query', '$userAgent')");
-    flutterJs.dispose();
     var newUrl =
         '$url&msToken=${Uri.encodeComponent(msToken)}&a_bogus=${Uri.encodeComponent(aBogus)}';
     return newUrl;
   }
 
   static String getSignature(String roomId, String uniqueId) {
-    JsRuntime flutterJs = JsRuntime(
-      memoryLimit: 4 * 1024 * 1024,
-      maxStackSize: 128 * 1024,
-    );
-
-    flutterJs.eval(kWebMsSDK);
+    final flutterJs = signatureRuntime;
     var msStub = getMsStub(roomId, uniqueId);
     var signature = flutterJs.eval(
       "getMSSDKSignature('$msStub','$defaultUserAgent')",
@@ -10683,7 +10697,6 @@ function getMSSDKSignature(msStub, userAgent) {
         "getMSSDKSignature('$msStub','$defaultUserAgent')",
       );
     }
-    flutterJs.dispose();
     return signature;
   }
 

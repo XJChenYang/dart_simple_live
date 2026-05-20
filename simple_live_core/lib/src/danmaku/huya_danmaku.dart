@@ -73,7 +73,7 @@ class HuyaDanmaku implements LiveDanmaku {
 
   void joinRoom() {
     var joinData =
-        getJoinData(danmakuArgs.ayyuid, danmakuArgs.topSid, danmakuArgs.topSid);
+        getJoinData(danmakuArgs.ayyuid, danmakuArgs.topSid, danmakuArgs.subSid);
     webScoketUtils?.sendMessage(joinData);
   }
 

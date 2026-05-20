@@ -51,7 +51,7 @@ class DBService extends GetxService {
   // 添加标签
   Future<FollowUserTag> addFollowTag(String tag) async {
     // 限制标签唯一且长度不超过8个字符
-    if (getFollowTagExistByTag(tag) && tag.length > 8) {
+    if (getFollowTagExistByTag(tag) || tag.length > 8) {
       return getFollowTag(tag)!;
     }
     final String uniqueId = uuid.v4();

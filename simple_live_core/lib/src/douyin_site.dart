@@ -67,55 +67,107 @@ class DouyinSite implements LiveSite {
   @override
   Future<List<LiveCategory>> getCategores() async {
     List<LiveCategory> categories = [];
-    var result = await HttpClient.instance.getText(
-      "https://live.douyin.com/",
-      queryParameters: {},
-      header: await getRequestHeaders(),
-    );
+    try {
+      var result = await HttpClient.instance.getText(
+        "https://live.douyin.com/",
+        queryParameters: {},
+        header: await getRequestHeaders(),
+      );
 
-    var renderData =
-        RegExp(
-          r'\{\\"pathname\\":\\"\/\\",\\"categoryData.*?\]\\n',
-        ).firstMatch(result)?.group(0) ??
-        "";
-    var renderDataJson = json.decode(
-      renderData
-          .trim()
-          .replaceAll('\\"', '"')
-          .replaceAll(r"\\", r"\")
-          .replaceAll(']\\n', ""),
-    );
-
-    for (var item in renderDataJson["categoryData"]) {
-      List<LiveSubCategory> subs = [];
-      var id = '${item["partition"]["id_str"]},${item["partition"]["type"]}';
-      for (var subItem in item["sub_partition"]) {
-        var subCategory = LiveSubCategory(
-          id: '${subItem["partition"]["id_str"]},${subItem["partition"]["type"]}',
-          name: asT<String?>(subItem["partition"]["title"]) ?? "",
-          parentId: id,
-          pic: "",
-        );
-        subs.add(subCategory);
+      var renderData =
+          RegExp(
+            r'\{\\"pathname\\":\\"\/\\",\\"categoryData.*?\]\\n',
+          ).firstMatch(result)?.group(0) ??
+          "";
+      if (renderData.isEmpty) {
+        throw Exception("无法解析抖音直播分类数据，页面结构可能已变更");
       }
+      var renderDataJson = json.decode(
+        renderData
+            .trim()
+            .replaceAll('\\"', '"')
+            .replaceAll(r"\\", r"\")
+            .replaceAll(']\\n', ""),
+      );
 
-      var category = LiveCategory(
-        children: subs,
-        id: id,
-        name: asT<String?>(item["partition"]["title"]) ?? "",
-      );
-      subs.insert(
-        0,
-        LiveSubCategory(
-          id: category.id,
-          name: category.name,
-          parentId: category.id,
-          pic: "",
-        ),
-      );
-      categories.add(category);
+      for (var item in renderDataJson["categoryData"]) {
+        List<LiveSubCategory> subs = [];
+        var id = '${item["partition"]["id_str"]},${item["partition"]["type"]}';
+        for (var subItem in item["sub_partition"]) {
+          var subCategory = LiveSubCategory(
+            id: '${subItem["partition"]["id_str"]},${subItem["partition"]["type"]}',
+            name: asT<String?>(subItem["partition"]["title"]) ?? "",
+            parentId: id,
+            pic: "",
+          );
+          subs.add(subCategory);
+        }
+
+        var category = LiveCategory(
+          children: subs,
+          id: id,
+          name: asT<String?>(item["partition"]["title"]) ?? "",
+        );
+        subs.insert(
+          0,
+          LiveSubCategory(
+            id: category.id,
+            name: category.name,
+            parentId: category.id,
+            pic: "",
+          ),
+        );
+        categories.add(category);
+      }
+    } catch (_) {
+      _logDebug("解析抖音分类失败，使用备用分类");
+    }
+    if (categories.isEmpty) {
+      categories = _getFallbackCategories();
     }
     return categories;
+  }
+
+  /// Fallback categories when homepage parsing fails
+  List<LiveCategory> _getFallbackCategories() {
+    return [
+      _makeCategory("6,1", "网游", [
+        _makeSub("6,2", "6,1", "王者荣耀"),
+        _makeSub("6,3", "6,1", "英雄联盟"),
+        _makeSub("6,6", "6,1", "和平精英"),
+        _makeSub("6,7", "6,1", "穿越火线"),
+        _makeSub("6,8", "6,1", "DNF"),
+      ]),
+      _makeCategory("7,1", "单机", [
+        _makeSub("7,2", "7,1", "我的世界"),
+        _makeSub("7,5", "7,1", "主机游戏"),
+        _makeSub("7,21", "7,1", "原神"),
+      ]),
+      _makeCategory("8,1", "娱乐", [
+        _makeSub("8,2", "8,1", "聊天"),
+        _makeSub("8,6", "8,1", "音乐"),
+        _makeSub("8,7", "8,1", "颜值"),
+      ]),
+      _makeCategory("9,1", "手游", [
+        _makeSub("9,2", "9,1", "LOL手游"),
+        _makeSub("9,4", "9,1", "火影忍者"),
+        _makeSub("9,5", "9,1", "金铲铲之战"),
+      ]),
+      _makeCategory("10,1", "其他", [
+        _makeSub("10,2", "10,1", "学习"),
+        _makeSub("10,3", "10,1", "电台"),
+        _makeSub("10,8", "10,1", "运动"),
+      ]),
+    ];
+  }
+
+  LiveCategory _makeCategory(String id, String name, List<LiveSubCategory> subs) {
+    subs.insert(0, LiveSubCategory(id: id, name: name, parentId: id, pic: ""));
+    return LiveCategory(id: id, name: name, children: subs);
+  }
+
+  LiveSubCategory _makeSub(String id, String parentId, String name) {
+    return LiveSubCategory(id: id, name: name, parentId: parentId, pic: "");
   }
 
   @override
@@ -561,12 +613,11 @@ class DouyinSite implements LiveSite {
       var streamData = pullData["stream_data"]?.toString() ?? "";
 
       if (!streamData.startsWith('{')) {
-        var flvList = (detail.data["flv_pull_url"] as Map).values
-            .cast<String>()
-            .toList();
-        var hlsList = (detail.data["hls_pull_url_map"] as Map).values
-            .cast<String>()
-            .toList();
+        var flvMap = detail.data["flv_pull_url"];
+        var hlsMap = detail.data["hls_pull_url_map"];
+        if (flvMap is! Map || hlsMap is! Map) return qualities;
+        var flvList = flvMap.values.cast<String>().toList();
+        var hlsList = hlsMap.values.cast<String>().toList();
         for (var quality in qulityList) {
           int level = quality["level"];
           List<String> urls = [];
@@ -773,7 +824,9 @@ class DouyinSite implements LiveSite {
   // 生成随机的数字
   int generateRandomNumber(int length) {
     var random = Random.secure();
-    var values = List<int>.generate(length, (i) => random.nextInt(10));
+    // Ensure first digit is non-zero to avoid shorter-than-expected results
+    var values = List<int>.generate(length,
+        (i) => i == 0 ? random.nextInt(9) + 1 : random.nextInt(10));
     StringBuffer stringBuffer = StringBuffer();
     for (var item in values) {
       stringBuffer.write(item);

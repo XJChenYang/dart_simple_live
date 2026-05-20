@@ -153,15 +153,17 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     autoExitTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       countdown.value -= 1;
       if (countdown.value <= 0) {
-        timer = Timer(const Duration(seconds: 10), () async {
+        timer.cancel();
+        autoExitTimer?.cancel();
+        autoExitTimer = null;
+        var graceTimer = Timer(const Duration(seconds: 10), () async {
           await WakelockPlus.disable();
           exit(0);
         });
-        autoExitTimer?.cancel();
         var delay = await Utils.showAlertDialog("定时关闭已到时,是否延迟关闭?",
             title: "延迟关闭", confirm: "延迟", cancel: "关闭", selectable: true);
         if (delay) {
-          timer.cancel();
+          graceTimer.cancel();
           delayAutoExit.value = true;
           showAutoExitSheet();
           setAutoExit();
@@ -335,7 +337,7 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
       Log.logPrint(e);
       //SmartDialog.showToast(e.toString());
       loadError.value = true;
-      error = e as Error;
+      if (e is Error) error = e;
     } finally {
       SmartDialog.dismiss(status: SmartStatus.loading);
     }
@@ -470,7 +472,7 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   int mediaErrorRetryCount = 0;
   @override
   void mediaError(String error) async {
-    super.mediaEnd();
+    super.mediaError(error);
     if (mediaErrorRetryCount < 2) {
       Log.d("播放失败，尝试第${mediaErrorRetryCount + 1}次刷新");
       if (mediaErrorRetryCount == 1) {
@@ -947,14 +949,18 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
       naviteUrl = "bilibili://live/${detail.value?.roomId}";
       webUrl = "https://live.bilibili.com/${detail.value?.roomId}";
     } else if (site.id == Constant.kDouyin) {
-      var args = detail.value?.danmakuData as DouyinDanmakuArgs;
-      naviteUrl = "snssdk1128://webcast_room?room_id=${args.roomId}";
-      webUrl = "https://live.douyin.com/${args.webRid}";
+      var args = detail.value?.danmakuData;
+      if (args is DouyinDanmakuArgs) {
+        naviteUrl = "snssdk1128://webcast_room?room_id=${args.roomId}";
+        webUrl = "https://live.douyin.com/${args.webRid}";
+      }
     } else if (site.id == Constant.kHuya) {
-      var args = detail.value?.danmakuData as HuyaDanmakuArgs;
-      naviteUrl =
-          "yykiwi://homepage/index.html?banneraction=https%3A%2F%2Fdiy-front.cdn.huya.com%2Fzt%2Ffrontpage%2Fcc%2Fupdate.html%3Fhyaction%3Dlive%26channelid%3D${args.subSid}%26subid%3D${args.subSid}%26liveuid%3D${args.subSid}%26screentype%3D1%26sourcetype%3D0%26fromapp%3Dhuya_wap%252Fclick%252Fopen_app_guide%26&fromapp=huya_wap/click/open_app_guide";
-      webUrl = "https://www.huya.com/${detail.value?.roomId}";
+      var args = detail.value?.danmakuData;
+      if (args is HuyaDanmakuArgs) {
+        naviteUrl =
+            "yykiwi://homepage/index.html?banneraction=https%3A%2F%2Fdiy-front.cdn.huya.com%2Fzt%2Ffrontpage%2Fcc%2Fupdate.html%3Fhyaction%3Dlive%26channelid%3D${args.subSid}%26subid%3D${args.subSid}%26liveuid%3D${args.subSid}%26screentype%3D1%26sourcetype%3D0%26fromapp%3Dhuya_wap%252Fclick%252Fopen_app_guide%26&fromapp=huya_wap/click/open_app_guide";
+        webUrl = "https://www.huya.com/${detail.value?.roomId}";
+      }
     } else if (site.id == Constant.kDouyu) {
       naviteUrl =
           "douyulink://?type=90001&schemeUrl=douyuapp%3A%2F%2Froom%3FliveType%3D0%26rid%3D${detail.value?.roomId}";

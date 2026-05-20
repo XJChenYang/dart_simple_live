@@ -204,6 +204,8 @@ class SyncService extends GetxService {
         httpPort,
       );
 
+      this.server = server;
+
       // Enable content compression
       server.autoCompress = true;
 

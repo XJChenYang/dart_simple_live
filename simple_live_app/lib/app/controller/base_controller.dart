@@ -39,7 +39,7 @@ class BaseController extends GetxController {
       pageError.value = true;
       errorMsg.value = msg;
     } else {
-      SmartDialog.showToast(exceptionToString(msg));
+      SmartDialog.showToast(msg);
     }
   }
 
